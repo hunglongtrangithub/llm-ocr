@@ -74,7 +74,7 @@ def extract_text_from_blocks(blocks: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path):
+def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path) -> bool:
     filename = file_path.name
     try:
         logger.info(f"📥 Processing file: {filename}\n")
@@ -87,10 +87,13 @@ def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path):
             output_file = OUTPUT_TEXT_DIR / f"{filename}.txt"
             output_file.write_text(text)
             logger.success(f"✅ Text written to {output_file}\n")
+            return True
         else:
             logger.error(f"❌ Textract job {job_id} failed for {filename}")
+            return False
     except Exception:
         logger.exception(f"❌ Unexpected error while processing {filename}")
+        return False
 
 
 def process():
@@ -98,9 +101,12 @@ def process():
     textract = boto3.client("textract", region_name=REGION_NAME)
     if not LOCAL_PDF_DIR.is_dir():
         raise ValueError(f"{LOCAL_PDF_DIR} is not a directory")
+    success_count = 0
     for pdf_path in LOCAL_PDF_DIR.iterdir():
         if pdf_path.suffix.lower() == ".pdf":
-            process_pdf_file(s3, textract, pdf_path)
+            if process_pdf_file(s3, textract, pdf_path):
+                success_count += 1
+    logger.info(f"Successfully processed {success_count} files")
 
 
 if __name__ == "__main__":
