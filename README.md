@@ -31,7 +31,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 2. Clone the repository:
 
 ```bash
-git clone
+git clone https://github.com/hunglongtrangithub/llm-ocr.git
 cd llm-ocr
 ```
 
