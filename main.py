@@ -1,5 +1,5 @@
 from moto import mock_aws
-from ocr import process, BUCKET_NAME
+from ocr import process, BUCKET_NAME, REGION_NAME
 from loguru import logger
 import boto3
 import os
@@ -13,7 +13,7 @@ def setup_testing_s3():
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+    os.environ["AWS_DEFAULT_REGION"] = REGION_NAME
     os.environ["S3_BUCKET_NAME"] = bucket_name
 
     # Mock S3 and create a test bucket with objects
