@@ -49,3 +49,5 @@ source .venv/bin/activate  # On Unix/macOS
 ```bash
 aws configure
 ```
+
+6. Make sure all of the PDF files for processing are in the `all_files_merged` directory
