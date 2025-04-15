@@ -101,12 +101,14 @@ def process():
     textract = boto3.client("textract", region_name=REGION_NAME)
     if not LOCAL_PDF_DIR.is_dir():
         raise ValueError(f"{LOCAL_PDF_DIR} is not a directory")
+    total_count = 0
     success_count = 0
     for pdf_path in LOCAL_PDF_DIR.iterdir():
         if pdf_path.suffix.lower() == ".pdf":
+            total_count += 1
             if process_pdf_file(s3, textract, pdf_path):
                 success_count += 1
-    logger.info(f"Successfully processed {success_count} files")
+    logger.info(f"Successfully processed {success_count}/{total_count} files")
 
 
 if __name__ == "__main__":
