@@ -9,18 +9,14 @@ from mypy_boto3_s3.client import S3Client
 from mypy_boto3_textract.client import TextractClient
 from mypy_boto3_textract.type_defs import GetDocumentAnalysisRequestTypeDef
 
-from config import PROCESSED_DIR, RAW_DIR
-
 # ----------------- Configuration -----------------
-PDF_DIR = RAW_DIR / "TCGA_Reports_pdf"
-TXT_DIR = PROCESSED_DIR / "TCGA_Reports_txt"
 REGION_NAME = "us-east-1"
 BUCKET_NAME = "TCGA_Reports_pdf"
 
 
-def upload_to_s3(s3: S3Client, file_path: Path, bucket: str, object_name: str):
+def upload_to_s3(s3: S3Client, report_path: Path, bucket: str, object_name: str):
     try:
-        s3.upload_file(str(file_path), bucket, object_name)
+        s3.upload_file(str(report_path), bucket, object_name)
         logger.info(f"✅ Uploaded: {object_name}\n")
     except Exception:
         logger.exception(f"❌ Failed to upload {object_name}")
@@ -79,39 +75,46 @@ def extract_text_from_blocks(blocks: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path) -> bool:
-    filename = file_path.name
+def process_pdf_file(
+    s3: S3Client,
+    textract: TextractClient,
+    pdf_file: Path,
+    txt_file: Path,
+    report_name: str,
+) -> bool:
     try:
-        logger.info(f"📥 Processing file: {filename}\n")
-        upload_to_s3(s3, file_path, BUCKET_NAME, filename)
-        job_id = start_textract_job(textract, BUCKET_NAME, filename)
+        logger.info(f"📥 Processing file: {pdf_file}\n")
+        upload_to_s3(s3, pdf_file, BUCKET_NAME, report_name)
+        job_id = start_textract_job(textract, BUCKET_NAME, report_name)
         if is_job_complete(textract, job_id):
             blocks = get_job_results(textract, job_id)
             text = extract_text_from_blocks(blocks)
-            TXT_DIR.mkdir(parents=True, exist_ok=True)
-            output_file = TXT_DIR / f"{filename}.txt"
-            output_file.write_text(text)
-            logger.success(f"✅ Text written to {output_file}\n")
+
+            txt_file.parent.mkdir(parents=True, exist_ok=True)
+            txt_file.write_text(text)
+            logger.success(f"✅ Text written to {txt_file}\n")
             return True
         else:
-            logger.error(f"❌ Textract job {job_id} failed for {filename}")
+            logger.error(f"❌ Textract job {job_id} failed for {report_name}")
             return False
     except Exception:
-        logger.exception(f"❌ Unexpected error while processing {filename}")
+        logger.exception(f"❌ Unexpected error while processing {report_name}")
         return False
 
 
-def process():
+def process(in_pdf_dir: Path, out_txt_dir: Path):
     s3 = boto3.client("s3", region_name=REGION_NAME)
     textract = boto3.client("textract", region_name=REGION_NAME)
-    if not PDF_DIR.is_dir():
-        raise ValueError(f"{PDF_DIR} is not a directory")
+    if not in_pdf_dir.is_dir():
+        raise ValueError(f"{in_pdf_dir} is not a directory")
     total_count = 0
     success_count = 0
-    for pdf_path in PDF_DIR.iterdir():
+    for pdf_path in in_pdf_dir.iterdir():
         if pdf_path.suffix.lower() == ".pdf":
             total_count += 1
-            if process_pdf_file(s3, textract, pdf_path):
+            report_name = pdf_path.stem
+            txt_path = out_txt_dir / f"{report_name}.txt"
+            if process_pdf_file(s3, textract, pdf_path, txt_path, report_name):
                 success_count += 1
     logger.info(f"Successfully processed {success_count}/{total_count} files")
 
@@ -137,11 +140,15 @@ def setup_testing_s3():
     setup_mock_s3()
 
 
-def test_process():
+def test_process(in_pdf_dir: Path, out_txt_dir: Path):
     with mock_aws():
         setup_testing_s3()
-        process()
+        process(in_pdf_dir, out_txt_dir)
 
 
 if __name__ == "__main__":
-    test_process()  # or process() for real AWS
+    from src import config
+
+    in_pdf_dir = config.RAW_DIR / "TCGA_Reports_pdf"
+    out_txt_dir = config.PROCESSED_DIR / "TCGA_Reports_txt"
+    test_process(in_pdf_dir, out_txt_dir)  # or process() for real AWS
