@@ -7,10 +7,12 @@ requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.37.33",
     "loguru>=0.7.3",
+    "pymupdf4llm>=0.0.21",
 ]
 
 [dependency-groups]
 dev = [
     "boto3-stubs[full]>=1.37.33",
+    "marimo>=0.13.2",
     "moto>=5.1.3",
 ]

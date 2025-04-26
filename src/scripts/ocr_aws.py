@@ -1,16 +1,21 @@
-import boto3
-from pathlib import Path
+import os
 import time
+from pathlib import Path
+
+import boto3
 from loguru import logger
+from moto import mock_aws
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_textract.client import TextractClient
 from mypy_boto3_textract.type_defs import GetDocumentAnalysisRequestTypeDef
 
+from config import PROCESSED_DIR, RAW_DIR
+
 # ----------------- Configuration -----------------
-BUCKET_NAME = "all_files_merged"
-LOCAL_PDF_DIR = Path(__file__).parent / "all_files_merged"
-OUTPUT_TEXT_DIR = Path(__file__).parent / "textract_output"
+PDF_DIR = RAW_DIR / "TCGA_Reports_pdf"
+TXT_DIR = PROCESSED_DIR / "TCGA_Reports_txt"
 REGION_NAME = "us-east-1"
+BUCKET_NAME = "TCGA_Reports_pdf"
 
 
 def upload_to_s3(s3: S3Client, file_path: Path, bucket: str, object_name: str):
@@ -83,8 +88,8 @@ def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path) ->
         if is_job_complete(textract, job_id):
             blocks = get_job_results(textract, job_id)
             text = extract_text_from_blocks(blocks)
-            OUTPUT_TEXT_DIR.mkdir(parents=True, exist_ok=True)
-            output_file = OUTPUT_TEXT_DIR / f"{filename}.txt"
+            TXT_DIR.mkdir(parents=True, exist_ok=True)
+            output_file = TXT_DIR / f"{filename}.txt"
             output_file.write_text(text)
             logger.success(f"✅ Text written to {output_file}\n")
             return True
@@ -99,11 +104,11 @@ def process_pdf_file(s3: S3Client, textract: TextractClient, file_path: Path) ->
 def process():
     s3 = boto3.client("s3", region_name=REGION_NAME)
     textract = boto3.client("textract", region_name=REGION_NAME)
-    if not LOCAL_PDF_DIR.is_dir():
-        raise ValueError(f"{LOCAL_PDF_DIR} is not a directory")
+    if not PDF_DIR.is_dir():
+        raise ValueError(f"{PDF_DIR} is not a directory")
     total_count = 0
     success_count = 0
-    for pdf_path in LOCAL_PDF_DIR.iterdir():
+    for pdf_path in PDF_DIR.iterdir():
         if pdf_path.suffix.lower() == ".pdf":
             total_count += 1
             if process_pdf_file(s3, textract, pdf_path):
@@ -111,5 +116,32 @@ def process():
     logger.info(f"Successfully processed {success_count}/{total_count} files")
 
 
+# Set up testing environment for AWS S3
+def setup_testing_s3():
+    bucket_name = BUCKET_NAME
+    # Set up fake AWS credentials
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = REGION_NAME
+    os.environ["S3_BUCKET_NAME"] = bucket_name
+
+    # Mock S3 and create a test bucket with objects
+    def setup_mock_s3():
+        s3 = boto3.resource("s3")
+        s3.create_bucket(Bucket=bucket_name)
+        logger.info(f"Mock S3 bucket '{bucket_name}' created.")
+
+    # Execute the mock setup
+    setup_mock_s3()
+
+
+def test_process():
+    with mock_aws():
+        setup_testing_s3()
+        process()
+
+
 if __name__ == "__main__":
-    process()
+    test_process()  # or process() for real AWS
