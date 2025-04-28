@@ -28,15 +28,18 @@ def _():
 
 @app.cell
 def _(config, pymupdf):
-    nccn_file_name = config.RAW_DIR / "NCCNGuidelines.pdf"
-    nccn_doc = pymupdf.open(nccn_file_name)
-    nccn_texts = []
-    for _p in nccn_doc.pages():
-        nccn_texts.append(_p.get_text())
-    nccn_doc.close()
-    print(f"Number of pages: {len(nccn_texts)}")
-    print(f"Number of words: {sum([len(_p.split()) for _p in nccn_texts])}")
-    return (nccn_file_name,)
+    def check_nccn_file():
+        nccn_file_name = config.RAW_DIR / "NCCNGuidelines.pdf"
+        nccn_doc = pymupdf.open(nccn_file_name)
+        nccn_texts = []
+        for _p in nccn_doc.pages():
+            nccn_texts.append(_p.get_text())
+        nccn_doc.close()
+        print(f"Number of pages: {len(nccn_texts)}")
+        print(f"Number of words: {sum([len(_p.split()) for _p in nccn_texts])}")
+
+    check_nccn_file()
+    return
 
 
 @app.cell
@@ -80,13 +83,21 @@ def _(config, pymupdf):
 
 
 @app.cell
-def _(nccn_file_name):
-    import pymupdf4llm
+def _(config, pymupdf):
+    def check_nccn_text():
+        nccn_file_name = config.RAW_DIR / "NCCNGuidelines.pdf"
+        nccn_doc = pymupdf.open(nccn_file_name)
 
-    def check_pymupdf4llm():
-        nccn_doc = pymupdf4llm.to_markdown(doc=nccn_file_name, pages=[0, 1], show_progress=True)
-        return nccn_doc
-    check_pymupdf4llm()
+        for page_id in range(nccn_doc.page_count):
+            if page_id + 1 != 14:
+                continue
+            page = nccn_doc.load_page(page_id)
+            textpage = page.get_textpage()
+            text = textpage.extractText(sort=True)
+            print(text)
+        nccn_doc.close()
+
+    check_nccn_text()
     return
 
 

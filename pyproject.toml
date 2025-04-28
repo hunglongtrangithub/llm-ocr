@@ -9,6 +9,7 @@ dependencies = [
     "loguru>=0.7.3",
     "polars>=1.27.1",
     "pymupdf4llm>=0.0.21",
+    "unstructured[all-docs]>=0.17.2",
 ]
 
 [dependency-groups]
