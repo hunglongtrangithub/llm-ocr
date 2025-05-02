@@ -2,8 +2,9 @@ from src import config
 import pymupdf
 import pymupdf4llm
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
+
+from src.index.base import get_md_pages
 
 
 def test_nccn():
@@ -18,9 +19,9 @@ def test_nccn():
     nccn_doc.close()
 
 
-def test_unstructured_nccn(input_pdf_path: Path):
+def test_unstructured_nccn():
+    input_pdf_path = config.RAW_DIR / "NCCNGuidelines.pdf"
     from unstructured.partition.pdf import partition_pdf
-    from unstructured.chunking.title import chunk_by_title
     from unstructured.chunking.basic import chunk_elements
 
     print(f"Processing {input_pdf_path}...")
@@ -28,7 +29,6 @@ def test_unstructured_nccn(input_pdf_path: Path):
     print(f"Found {len(elements)} elements in the PDF.")
 
     chunks = chunk_elements(elements, max_characters=1500)
-    # chunks = chunk_by_title(elements, max_characters=1500)
     for i, chunk in enumerate(chunks):
         with open("temp.txt") as f:
             string = f"Chunk {i}:\n\nCategory: {chunk.category}\n\nMetadata: {chunk.metadata.to_dict()}\n\n{chunk.text}"
@@ -40,46 +40,26 @@ def test_unstructured_nccn(input_pdf_path: Path):
         os.remove("temp.txt")  # Remove the temporary file
 
 
-def process_page(args: tuple[Path, int]) -> tuple[int, str]:
-    input_pdf_path, page_id = args
-    nccn_doc = pymupdf.open(input_pdf_path)
-    md_text = pymupdf4llm.to_markdown(nccn_doc, pages=[page_id])
-    nccn_doc.close()
-    return page_id, md_text
-
-
-def test_pymupdf_nccn(
-    input_pdf_path: Path, max_workers: int = 8, check: bool = False
-) -> list[str]:
-    print(f"Processing {input_pdf_path}...")
-    nccn_doc = pymupdf.open(input_pdf_path)
-    page_count = nccn_doc.page_count
-    nccn_doc.close()
-
-    md_texts = [None] * page_count
-    args = [(input_pdf_path, page_id) for page_id in range(page_count)]
-
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(process_page, arg): arg[1] for arg in args}
-        for future in as_completed(futures):
-            page_id, md_text = future.result()
-            print(f"Processed page {page_id + 1} of {page_count}.")
-            md_texts[page_id] = md_text
-
-    if check:
-        for i, md_text in enumerate(md_texts):
-            with open("temp.md", "w") as f:
-                f.write(md_text)
-            os.system("bat temp.md")
-            input(f"Press Enter to view page {i + 2}/{len(md_texts)}...")
-            os.system("clear")  # Clear screen before showing next page
-        if Path("temp.md").exists():
-            os.remove("temp.md")  # Remove the temporary file
-
-    return md_texts
-
-
-if __name__ == "__main__":
+def test_pymupdf_nccn():
     input_pdf_path = config.RAW_DIR / "NCCNGuidelines.pdf"
-    output_md_path = config.PROCESSED_DIR / "NCCNGuidelines.md"
-    test_pymupdf_nccn(input_pdf_path)
+    output_dir_path = config.PROCESSED_DIR / "NCCNGuidelines"
+    max_workers = 8
+
+    if output_dir_path.exists():
+        md_pages = [file.read_text() for file in output_dir_path.glob("*.txt")]
+    else:
+        md_pages = get_md_pages(input_pdf_path, output_dir_path, max_workers)
+        for page_id, md_page in enumerate(md_pages):
+            txt_path = output_dir_path / f"{page_id}.txt"
+            txt_path.write_text(md_page)
+
+    for i, md_text in enumerate(md_pages):
+        with open("temp.md", "w") as f:
+            f.write(md_text)
+        os.system("bat temp.md")
+        input(f"Press Enter to view page {i + 2}/{len(md_pages)}...")
+        os.system("clear")  # Clear screen before showing next page
+    if Path("temp.md").exists():
+        os.remove("temp.md")  # Remove the temporary file
+
+    return md_pages
