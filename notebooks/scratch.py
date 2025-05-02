@@ -103,6 +103,37 @@ def _(config, pymupdf):
 
 @app.cell
 def _():
+    from src.scripts.pdf_to_md import test_pymupdf_nccn
+    import faiss
+    from sentence_transformers import SentenceTransformer
+
+    def check_indexing():
+        device = "mps"
+        doc = "Hello, world!" * 1
+        # Load the model
+        model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device=device)
+        model_max_seq_len = model.get_max_seq_length() or 0
+        print(f"Model's max sequence length: {model_max_seq_len}")
+        c = 0
+        tokenized_doc = model.tokenize([doc])
+        doc_len = len(tokenized_doc["input_ids"][0])
+        print(f"Tokenized doc length: {doc_len}")
+        if len(tokenized_doc["input_ids"][0]) == model_max_seq_len:
+            print("Too long sequence")
+
+    
+        # # Create a FAISS index
+        # index = faiss.IndexFlatL2(embeddings.shape[1])
+        # index.add(embeddings)
+
+        # # Save the index to a file
+        # faiss.write_index(index, config.PROCESSED_DIR / "nccn_index.index")    
+    check_indexing()
+    return
+
+
+@app.cell
+def _():
     return
 
 
