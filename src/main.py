@@ -37,6 +37,7 @@ Avoid introducing information not present in the provided context.
 Focus on aligning your response with the authoritative guidance of the NCCN Guidelines whenever possible.
 """
 
+
 class ReportProcessor:
     def __init__(self):
         self.k = 2  # Number of top results to retrieve
@@ -73,7 +74,7 @@ class ReportProcessor:
                 temperature=0.7,
                 max_tokens=500,
             )
-            return response.choices[0].message.content.strip()
+            return (response.choices[0].message.content or "").strip()
         except Exception as e:
             logger.error(f"Error querying OpenAI: {e}")
             return "There was an error processing your query."
