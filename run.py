@@ -1,5 +1,8 @@
 import gradio as gr
 from src.main import ReportProcessor
+from dotenv import load_dotenv
+
+load_dotenv()
 
 processor = ReportProcessor()
 

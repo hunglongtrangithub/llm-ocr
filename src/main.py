@@ -6,11 +6,16 @@ from src.index.lancedb import DB_URI, TABLE_NAME
 from loguru import logger
 
 PROMPT_TEMPLATE = """\
-The user has uploaded a pathology report. The following is context retrieved from a database:
+The user has uploaded this pathology report:
+
+{report}
+
+Below is context retrieved from the NCCN guideline database:
 
 {relevant_texts}
 
-Based on this information, please answer the following question:
+Based on **both** the report _and_ the guideline context, please answer the question:
+
 {query}
 
 If the information provided is insufficient, respond with "I need more details to answer this question accurately.
@@ -40,11 +45,14 @@ Focus on aligning your response with the authoritative guidance of the NCCN Guid
 
 class ReportProcessor:
     def __init__(self):
-        self.k = 2  # Number of top results to retrieve
+        self.k = 10  # Number of top results to retrieve
         self.current_report_text = ""  # Stores text of the currently uploaded report
         self.table_name = TABLE_NAME
         self.db = lancedb.connect(DB_URI)  # Connect to LanceDB
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key=os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OpenAI API key is not set in the environment variables.")
+        self.client = OpenAI(api_key=api_key)  # Initialize OpenAI client
 
     def upload_report(self, report_file: str) -> str:
         """
@@ -91,7 +99,7 @@ class ReportProcessor:
         try:
             table = self.db.open_table(self.table_name)
             search_result = table.search(query).limit(self.k).to_polars()
-            logger.info("LanceDB search result:\n" + str(search_result))
+            logger.info("LanceDB search result:\n" + str(search_result["text"].to_list()))
         except Exception as e:
             logger.error(f"Error searching LanceDB: {e}")
             return "There was an error retrieving information from the database."
@@ -104,7 +112,7 @@ class ReportProcessor:
             return "No relevant context could be found in the database."
 
         # Construct the prompt
-        prompt = PROMPT_TEMPLATE.format(relevant_texts=relevant_texts, query=query)
+        prompt = PROMPT_TEMPLATE.format(report=self.current_report_text, relevant_texts=relevant_texts, query=query)
 
         # Query the LLM
         llm_response = self.query_llm(prompt)
