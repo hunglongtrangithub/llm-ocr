@@ -56,6 +56,7 @@ def _(base_scores, rag_scores):
 @app.cell
 def _(config, rag_df):
     rag_df.with_row_index().write_csv(config.REPORT_DIR / "rag_scores.csv")
+    rag_df.describe().write_csv(config.REPORT_DIR / "rag_scores_desc.csv")
     print(rag_df.describe())
     print(rag_df)
     return
@@ -64,6 +65,7 @@ def _(config, rag_df):
 @app.cell
 def _(base_df, config):
     base_df.with_row_index().write_csv(config.REPORT_DIR / "base_scores.csv")
+    base_df.describe().write_csv(config.REPORT_DIR / "base_scores_desc.csv")
     print(base_df.describe())
     print(base_df)
     return
