@@ -1,5 +1,6 @@
-import pymupdf
 from pathlib import Path
+
+import pymupdf
 from loguru import logger
 
 

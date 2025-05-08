@@ -1,9 +1,10 @@
-from src.scripts.index import unstructured_pdf_to_txt
-from src import config
 from sentence_transformers import SentenceTransformer
 
+from src import config
+from src.index.chunking import get_chunks
 
-def test_embed_texts():
+
+def test_embed_chunks():
     pdf_file_path = config.RAW_DIR / "NCCNGuidelines.pdf"
     device = "mps"
 
@@ -11,7 +12,7 @@ def test_embed_texts():
     max_characters = 500
     overlap = 0
 
-    texts = unstructured_pdf_to_txt(
+    texts = get_chunks(
         pdf_file_path,
         max_characters=max_characters,
         overlap=overlap,

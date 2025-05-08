@@ -1,11 +1,12 @@
 import os
-from openai import OpenAI
-import pymupdf
-import lancedb
-from src.index.lancedb import DB_URI, TABLE_NAME
-from src.evaluate import evaluate
-from loguru import logger
 
+import pymupdf
+from loguru import logger
+from openai import OpenAI
+
+import lancedb
+from src.evaluate import evaluate
+from src.index.lancedb import DB_URI, TABLE_NAME
 
 PROMPT_TEMPLATE = """\
 Reading the pathology report and summarizing your key findings from it. If the information provided is insufficient, respond with "I need more details to answer this question accurately".

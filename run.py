@@ -1,7 +1,8 @@
 import gradio as gr
-from src.ragProcessor import ragProcessor
-from src.baseProcessor import baseProcessor
 from dotenv import load_dotenv
+
+from src.baseProcessor import baseProcessor
+from src.ragProcessor import ragProcessor
 
 load_dotenv()
 

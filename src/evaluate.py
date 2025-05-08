@@ -1,6 +1,7 @@
 from deepeval import evaluate
-from deepeval.test_case import LLMTestCase
 from deepeval.metrics import ContextualRelevancyMetric
+from deepeval.test_case import LLMTestCase
+
 
 def evaluate(query: str, actual_output: str, retrieval_context: list[str] = None):
     metric = ContextualRelevancyMetric(

@@ -1,10 +1,12 @@
 import os
-from openai import OpenAI
+
 import pymupdf
-import lancedb
-from src.index.lancedb import DB_URI, TABLE_NAME
-from src.evaluate import evaluate
 from loguru import logger
+from openai import OpenAI
+
+import lancedb
+from src.evaluate import evaluate
+from src.index.lancedb import DB_URI, TABLE_NAME
 
 PROMPT_TEMPLATE = """\
 The user has uploaded this pathology report:

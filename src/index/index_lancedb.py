@@ -1,15 +1,18 @@
 from typing import cast
-import torch
-import polars as pl
+
 import numpy as np
+import polars as pl
+import sentence_transformers
+import torch
+
 import lancedb
 from lancedb.embeddings import get_registry
 from lancedb.embeddings.base import TextEmbeddingFunction
 from lancedb.embeddings.registry import register
 from lancedb.pydantic import LanceModel, Vector
-import sentence_transformers
 from src import config
-from .base import get_chunks
+
+from .chunking import get_chunks
 
 DB_URI = config.ROOT_DIR / "lancedb"
 TABLE_NAME = "docs"
@@ -59,27 +62,49 @@ class Docs(LanceModel):
     vector: Vector(model.ndims()) = model.VectorField()  # type: ignore
 
 
-if __name__ == "__main__":
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--overwrite",
+        "-o",
+        action="store_true",
+        help="Overwrite existing index if it exists",
+    )
+    args = parser.parse_args()
+
     db = lancedb.connect(DB_URI)
     print(f"Created DB at {DB_URI}")
 
     if TABLE_NAME in db.table_names():
-        print("Table docs already exists. Deleting...")
-        db.drop_table(TABLE_NAME)
-    else:
-        table = db.create_table(TABLE_NAME, schema=Docs)
-        print(f"Created table {TABLE_NAME}")
+        if args.overwrite:
+            print("Table docs already exists. Deleting...")
+            db.drop_table(TABLE_NAME)
+        else:
+            print(f"Table {TABLE_NAME} already exists. Use --overwrite to overwrite.")
+            exit(0)
 
-        print("Extracting chunks")
-        chunks = get_chunks(config.RAW_DIR / "NCCNGuidelines.pdf")
+    table = db.create_table(TABLE_NAME, schema=Docs)
+    print(f"Created table {TABLE_NAME}")
 
-        df = pl.DataFrame({"text": chunks})
-        print("Adding chunks to the table")
-        table.add(data=df)
+    print("Extracting chunks")
+    chunks = get_chunks(config.RAW_DIR / "NCCNGuidelines.pdf")
 
-        table_df = pl.from_arrow(table.to_arrow())
-        print(table_df)
+    df = pl.DataFrame({"text": chunks})
+    print("Adding chunks to the table...")
+    table.add(data=df)
 
-        query = "What is issue date of lease?"
-        actual = table.search(query).limit(2)
-        print(actual.to_polars())
+    table_df = pl.from_arrow(table.to_arrow())
+    print(table_df)
+
+    print("Test: Querying the table...")
+    query = "NCCN Categories of Preference"
+    actual = table.search(query).limit(2)
+    print(actual.to_polars())
+
+    return table
+
+
+if __name__ == "__main__":
+    main()

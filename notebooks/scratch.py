@@ -8,9 +8,11 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import pymupdf  # PyMuPDF
     from pathlib import Path
+
     import polars as pl
+    import pymupdf  # PyMuPDF
+
     from src import config
 
     pat_docs_lens = []
@@ -103,9 +105,10 @@ def _(config, pymupdf):
 
 @app.cell
 def _():
-    from src.scripts.pdf_to_md import test_pymupdf_nccn
     import faiss
     from sentence_transformers import SentenceTransformer
+
+    from src.scripts.pdf_to_md import test_pymupdf_nccn
 
     def check_indexing():
         device = "mps"
