@@ -1,54 +1,63 @@
 import gradio as gr
 from dotenv import load_dotenv
-
-from src.baseProcessor import baseProcessor
-from src.ragProcessor import ragProcessor
+from loguru import logger
+import pymupdf
+from src.chat.rag_chat import RAGChat
 
 load_dotenv()
 
-processor = baseProcessor()
 
+def main():
+    processor = RAGChat()
+    current_report_text = ""
 
-def upload_report_interface(pdf_file):
-    if pdf_file is None:
-        return "Please upload a file first."
-    return processor.upload_report(pdf_file)
+    def clear_current_report():
+        nonlocal current_report_text
+        current_report_text = ""
+        return "Current report cleared.", None, None
 
+    def upload_report_interface(pdf_file):
+        if pdf_file is None:
+            return "Please upload a file first."
+        with pymupdf.open(pdf_file) as report:
+            # Collect all pages' text in bytes and separate with b'\f' (form feed in bytes)
+            text_content = b"\f".join(
+                page.get_text().encode("utf-8") for page in report.pages()
+            )
+        # Decode the concatenated bytes into a single string
+        nonlocal current_report_text
+        current_report_text = text_content.decode("utf-8")
+        logger.info("Uploaded report content processed successfully.")
+        return "Report uploaded and processed successfully."
 
-def ask_question_interface(question):
-    return processor.ask_question(question)
+    def summarize_report():
+        if not current_report_text:
+            return "Please enter a question first."
+        answer = processor.generate(current_report_text)
+        return answer
 
+    with gr.Blocks() as demo:
+        with gr.Row():
+            gr.Markdown("# Pathology Report RAG Summarization")
 
-def clear_current_report():
-    processor.current_report_text = ""
-    return "Current report cleared.", None, None
+        with gr.Row():
+            upload = gr.File(label="Upload Pathology Report", type="filepath")
+            result = gr.Textbox(label="Answer", lines=10)
 
+        with gr.Row():
+            summarize_button = gr.Button("Summarize Report")
+            clear_button = gr.Button("Clear Current Report")
 
-with gr.Blocks() as demo:
-    with gr.Row():
-        gr.Markdown("# Pathology Report RAG Summarization")
+        # Process document automatically when uploaded
+        upload.change(fn=upload_report_interface, inputs=[upload], outputs=[result])
 
-    with gr.Row():
-        upload = gr.File(label="Upload Pathology Report", type="filepath")
-        result = gr.Textbox(label="Answer", lines=10)
+        # Process question when user presses Enter
+        summarize_button.click(fn=summarize_report, outputs=[result])
 
-    with gr.Row():
-        query = gr.Textbox(
-            label="Ask a Question about the Report",
-            placeholder="Type your question and press Enter...",
-        )
+        clear_button.click(fn=clear_current_report, outputs=[result, upload])
 
-    with gr.Row():
-        clear_button = gr.Button("Clear Current Report")
-
-    # Process document automatically when uploaded
-    upload.change(fn=upload_report_interface, inputs=[upload], outputs=[result])
-
-    # Process question when user presses Enter
-    query.submit(fn=ask_question_interface, inputs=[query], outputs=[result])
-
-    clear_button.click(fn=clear_current_report, outputs=[result, upload, query])
-
-if __name__ == "__main__":
     demo.launch()
 
+
+if __name__ == "__main__":
+    main()
