@@ -64,8 +64,8 @@ if __name__ == "__main__":
     print(f"Created DB at {DB_URI}")
 
     if TABLE_NAME in db.table_names():
-        print("Table docs already exists.")
-        table = db.open_table(TABLE_NAME)
+        print("Table docs already exists. Deleting...")
+        db.drop_table(TABLE_NAME)
     else:
         table = db.create_table(TABLE_NAME, schema=Docs)
         print(f"Created table {TABLE_NAME}")

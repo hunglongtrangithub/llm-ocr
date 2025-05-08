@@ -5,7 +5,6 @@ import pymupdf
 import pymupdf4llm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-
 def get_chunks(
     pdf_file_path: Path,
     max_characters: int = 500,

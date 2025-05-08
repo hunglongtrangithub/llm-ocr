@@ -1,10 +1,11 @@
 import gradio as gr
-from src.main import ReportProcessor
+from src.ragProcessor import ragProcessor
+from src.baseProcessor import baseProcessor
 from dotenv import load_dotenv
 
 load_dotenv()
 
-processor = ReportProcessor()
+processor = baseProcessor()
 
 
 def upload_report_interface(pdf_file):

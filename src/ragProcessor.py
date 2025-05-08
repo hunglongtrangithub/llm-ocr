@@ -3,6 +3,7 @@ from openai import OpenAI
 import pymupdf
 import lancedb
 from src.index.lancedb import DB_URI, TABLE_NAME
+from src.evaluate import evaluate
 from loguru import logger
 
 PROMPT_TEMPLATE = """\
@@ -43,10 +44,11 @@ Focus on aligning your response with the authoritative guidance of the NCCN Guid
 """
 
 
-class ReportProcessor:
+class ragProcessor:
     def __init__(self):
         self.k = 10  # Number of top results to retrieve
         self.current_report_text = ""  # Stores text of the currently uploaded report
+        self.current_retrieval_context = ""  # Stores retrieved context from LanceDB
         self.table_name = TABLE_NAME
         self.db = lancedb.connect(DB_URI)  # Connect to LanceDB
         api_key = os.getenv("OPENAI_API_KEY")
@@ -102,13 +104,14 @@ class ReportProcessor:
             logger.info(
                 "LanceDB search result:\n" + str(search_result["text"].to_list())
             )
+            self.current_retrieval_context = search_result["text"].to_list()
         except Exception as e:
             logger.error(f"Error searching LanceDB: {e}")
             return "There was an error retrieving information from the database."
 
         # Concatenate relevant texts as context
         try:
-            relevant_texts = "\n".join(search_result["text"])  # Simplified mock-up
+            relevant_texts = "\n".join(self.current_retrieval_context)  # Simplified mock-up
         except KeyError:
             logger.error("Search result does not contain expected 'text' column.")
             return "No relevant context could be found in the database."
@@ -123,4 +126,14 @@ class ReportProcessor:
         # Query the LLM
         llm_response = self.query_llm(prompt)
         logger.info(f"LLM response: {llm_response}")
+
+        # Compute contextual relevancy
+        cr = evaluate(
+            query=user_prompt,
+            actual_output=llm_response,
+            retrieval_context=self.current_retrieval_context
+        )
+        logger.info(f"Contextual Relevancy: {cr[0]}")
+        logger.info(f"Contextual Relevancy Reason: {cr[1]}")
         return llm_response
+        
