@@ -49,7 +49,7 @@ class ReportProcessor:
         self.current_report_text = ""  # Stores text of the currently uploaded report
         self.table_name = TABLE_NAME
         self.db = lancedb.connect(DB_URI)  # Connect to LanceDB
-        api_key=os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OpenAI API key is not set in the environment variables.")
         self.client = OpenAI(api_key=api_key)  # Initialize OpenAI client
@@ -87,7 +87,7 @@ class ReportProcessor:
             logger.error(f"Error querying OpenAI: {e}")
             return "There was an error processing your query."
 
-    def ask_question(self, query: str) -> str:
+    def ask_question(self, user_prompt: str) -> str:
         """
         Process a user query about the uploaded report, searching LanceDB for context
         and querying the OpenAI GPT model for an answer.
@@ -98,8 +98,10 @@ class ReportProcessor:
         # Search LanceDB for relevant documents
         try:
             table = self.db.open_table(self.table_name)
-            search_result = table.search(query).limit(self.k).to_polars()
-            logger.info("LanceDB search result:\n" + str(search_result["text"].to_list()))
+            search_result = table.search(user_prompt).limit(self.k).to_polars()
+            logger.info(
+                "LanceDB search result:\n" + str(search_result["text"].to_list())
+            )
         except Exception as e:
             logger.error(f"Error searching LanceDB: {e}")
             return "There was an error retrieving information from the database."
@@ -112,7 +114,11 @@ class ReportProcessor:
             return "No relevant context could be found in the database."
 
         # Construct the prompt
-        prompt = PROMPT_TEMPLATE.format(report=self.current_report_text, relevant_texts=relevant_texts, query=query)
+        prompt = PROMPT_TEMPLATE.format(
+            report=self.current_report_text,
+            relevant_texts=relevant_texts,
+            query=user_prompt,
+        )
 
         # Query the LLM
         llm_response = self.query_llm(prompt)
