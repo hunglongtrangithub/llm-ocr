@@ -1,7 +1,8 @@
 import gradio as gr
+import pymupdf
 from dotenv import load_dotenv
 from loguru import logger
-import pymupdf
+
 from src.chat.rag_chat import RAGChat
 
 load_dotenv()
@@ -33,7 +34,7 @@ def main():
     def summarize_report():
         if not current_report_text:
             return "Please enter a question first."
-        answer = processor.generate(current_report_text)
+        answer, _ = processor.generate(current_report_text)
         return answer
 
     with gr.Blocks() as demo:

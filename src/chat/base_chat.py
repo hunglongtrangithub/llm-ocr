@@ -29,6 +29,5 @@ class BaseChat:
             max_tokens=500,
         )
         llm_response = (response.choices[0].message.content or "").strip()
-        logger.info(f"LLM response: {llm_response}")
 
         return llm_response
