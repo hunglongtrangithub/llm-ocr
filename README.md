@@ -1,53 +1,61 @@
-# LLM OCR
+# LLM-OCR: Enhanced Pathology Report Analysis with RAG
 
-A project that leverages Large Language Models (LLMs) to process and analyze OCR text extracted from scanned pathology reports using AWS Textract.
+A research project exploring the enhancement of Large Language Model (LLM) responses to pathology report queries using Retrieval-Augmented Generation (RAG) with NCCN guidelines.
 
 ## Overview
 
-This project combines AWS Textract's OCR capabilities with LLM prompting to enhance the extraction and interpretation of medical information from scanned pathology report PDFs.
+This project investigates how RAG (Retrieval-Augmented Generation) can improve LLM responses when answering questions about pathology reports. We use NCCN (National Comprehensive Cancer Network) documents as our knowledge base, partitioning them into semantic chunks using Unstructured.io and indexing them with LanceDB for efficient retrieval.
 
-Currently in Phase 1: AWS Textract Implementation
+The system aims to provide more accurate and contextually relevant responses by grounding the LLM's knowledge with specific NCCN guidelines, potentially improving the quality of medical information extraction and interpretation.
 
-### Project Phases
 
-1. **Phase 1 (Current)**: Text extraction from PDF documents using AWS Textract
-2. **Phase 2 (Planned)**: LLM prompting for analysis of extracted text
+## Installation
 
-## Prerequisites
-
-- AWS Account with Textract access
-- Python 3.x
-- AWS CLI configured
-- uv (Python package installer)
-
-## Setup
-
-1. Install uv:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-2. Clone the repository:
-
+1. Clone the repository:
 ```bash
 git clone https://github.com/hunglongtrangithub/llm-ocr.git
 cd llm-ocr
 ```
 
-3. Create and activate virtual environment and install dependencies:
-
+2. Create and activate a virtual environment:
 ```bash
-uv sync
+python -m venv .venv
 source .venv/bin/activate  # On Unix/macOS
 # or
 .venv\Scripts\activate  # On Windows
 ```
 
-5. Configure AWS credentials:
-
+3. Install dependencies using uv:
 ```bash
-aws configure
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install uv if not already installed
+uv sync
 ```
 
-6. Make sure all of the PDF files for processing are in the `all_files_merged` directory
+## Usage
+
+1. Prepare your NCCN document `NCCNGuidelines.pdf` in the `data/raw` directory.
+
+2. Run the document processing pipeline:
+```bash
+python -m src.index.lancedb
+```
+
+3. Run the RAG demo:
+```bash
+python run.py
+```
+
+## Project Structure
+
+```
+.
+├── data/           # NCCN document and pathology reports
+├── lancedb/        # Vector database storage
+├── notebooks/      # Jupyter notebooks for analysis
+├── src/           # Source code
+└── run.py         # Main entry point
+```
+
+## Results
+
+TODO
