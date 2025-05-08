@@ -1,9 +1,10 @@
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from unstructured.chunking.basic import chunk_elements
-from unstructured.partition.pdf import partition_pdf
+
 import pymupdf
 import pymupdf4llm
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from unstructured.chunking.basic import chunk_elements
+from unstructured.partition.pdf import partition_pdf
 
 
 def get_chunks(

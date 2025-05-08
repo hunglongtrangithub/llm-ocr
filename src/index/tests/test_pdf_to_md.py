@@ -1,10 +1,11 @@
-from src import config
+import os
+from pathlib import Path
+
 import pymupdf
 import pymupdf4llm
-from pathlib import Path
-import os
 
-from src.index.base import get_md_pages
+from src import config
+from src.index.chunking import get_md_pages
 
 
 def test_nccn():
@@ -21,8 +22,8 @@ def test_nccn():
 
 def test_unstructured_nccn():
     input_pdf_path = config.RAW_DIR / "NCCNGuidelines.pdf"
-    from unstructured.partition.pdf import partition_pdf
     from unstructured.chunking.basic import chunk_elements
+    from unstructured.partition.pdf import partition_pdf
 
     print(f"Processing {input_pdf_path}...")
     elements = partition_pdf(str(input_pdf_path))
